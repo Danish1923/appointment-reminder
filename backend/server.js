@@ -19,10 +19,24 @@ const PORT = process.env.PORT || 4000;
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  methods: ['GET', 'POST', 'DELETE'],
+  origin: function (origin, callback) {
+    const allowed = [
+      'https://appointment-reminder-roan.vercel.app',
+      'http://localhost:5173',
+    ];
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    // Strip trailing slash before comparing
+    const clean = origin.replace(/\/$/, '');
+    if (allowed.includes(clean)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS: ' + origin));
+    }
+  },
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
 }));
-app.use(express.json());
 
 // Routes
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
