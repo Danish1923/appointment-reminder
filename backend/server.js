@@ -44,3 +44,10 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   startReminderJob();
 });
+
+// Keep Render free tier awake
+setInterval(() => {
+  fetch(`https://appointment-reminder-backend-p14l.onrender.com/health`)
+    .then(() => console.log('[KeepAlive] pinged'))
+    .catch(() => console.log('[KeepAlive] ping failed'));
+}, 10 * 60 * 1000); // every 10 minutes
