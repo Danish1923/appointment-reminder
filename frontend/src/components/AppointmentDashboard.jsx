@@ -11,7 +11,6 @@ export default function AppointmentDashboard({ refreshKey }) {
     setLoading(true);
     try {
       const res = await axios.get(`${API_URL}/api/appointments`);
-      console.log('Fetched appointments:', res.data);
       setAppointments(res.data);
     } catch (err) {
       console.error('Failed to load appointments:', err.message);
@@ -20,8 +19,11 @@ export default function AppointmentDashboard({ refreshKey }) {
     }
   }
 
+  // Re-fetch whenever parent triggers a refresh (new booking)
   useEffect(() => {
-    fetchAppointments();
+    (async () => {
+      await fetchAppointments();
+    })();
   }, [refreshKey]);
 
   async function handleDelete(id) {
@@ -29,7 +31,7 @@ export default function AppointmentDashboard({ refreshKey }) {
     try {
       await axios.delete(`${API_URL}/api/appointments/${id}`);
       setAppointments((prev) => prev.filter((a) => a.id !== id));
-    } catch (err) {
+    } catch {
       alert('Failed to delete appointment.');
     }
   }
