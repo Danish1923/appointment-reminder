@@ -1,9 +1,5 @@
-require('dotenv').config(); // ← MUST be line 1, before any other require
-const express = require('express');
-const cors = require('cors');
-const appointmentsRouter = require('./routes/appointments');
-const { startReminderJob } = require('./cron/reminderJob');
-// Startup validation — catch missing env vars immediately
+require('dotenv').config();
+
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'];
 for (const key of required) {
   if (!process.env[key] || process.env[key].startsWith('your_')) {
@@ -14,36 +10,37 @@ for (const key of required) {
 
 console.log('✅ Supabase URL:', process.env.SUPABASE_URL);
 
+const express = require('express');
+const cors = require('cors');
+const appointmentsRouter = require('./routes/appointments');
+const { startReminderJob } = require('./cron/reminderJob');
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Middleware
-app.use(cors({
-  origin: function (origin, callback) {
-    const allowed = [
-      'https://appointment-reminder-roan.vercel.app',
-      'http://localhost:5173',
-    ];
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    // Strip trailing slash before comparing
-    const clean = origin.replace(/\/$/, '');
-    if (allowed.includes(clean)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS: ' + origin));
-    }
-  },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-}));
+// Handle CORS — allow any origin for now to rule out CORS as the issue
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+app.use(express.json());
 
 // Routes
+app.get('/', (req, res) => res.json({ message: 'Appointment Reminder API' }));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/appointments', appointmentsRouter);
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  startReminderJob(); // Start the 1-hour reminder cron
+  startReminderJob();
 });
